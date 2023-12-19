@@ -43,6 +43,7 @@ class Node:
         Network in which a node is contained.
 
     """
+    id: str
 
     def __init__(self, name: str, parent: Node = None):
         self.name: str = name
@@ -258,9 +259,11 @@ class ValueNode(Node):
         using a control flow graph and constant propagation.
 
     """
-
+    id: str
+    
     def __init__(self, name: str):
         super().__init__(str(name))
+        self.id = name
         self.config_type = ConfigType.UNKNOWN
 
     def __eq__(self, other):

@@ -40,7 +40,7 @@ class Link:
 
         self.node_b = node_b
         (
-            self.artifact_b,
+            self.artifact_b, 
             self.option_stack_b,
         ) = self._determine_components(node_b)
 
@@ -79,7 +79,17 @@ class Link:
         return node in (self.node_a, self.node_b)
 
     def __hash__(self):
-        obj_hash = hash("|".join([self.node_a.id, self.node_b.id]))
+        if(self.node_a):
+            if(self.node_a.id):
+                node_a_id = self.node_a.id
+        else:
+            node_a_id = "None"
+        if(self.node_b):
+            if(self.node_b.id):
+                node_b_id = self.node_b.id
+        else:
+            node_b_id = "None"
+        obj_hash = hash("|".join([node_a_id, node_b_id]))
         return obj_hash
 
     def __eq__(self, other):

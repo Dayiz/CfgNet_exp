@@ -29,6 +29,7 @@ from cfgnet.network.nodes import (
     ValueNode,
 )
 from cfgnet.plugins.plugin import Plugin
+from cfgnet.errors.error import Error
 
 TAGS_CONTAINING_LISTS = {
     "goal",
@@ -382,3 +383,12 @@ class MavenPlugin(Plugin):
             return ConfigType.MODE
 
         return ConfigType.UNKNOWN
+
+    def correct_error(self, error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        lines = _file.readlines()
+        _file.close()
+        lines[error.line_number - 1] = lines[error.line_number - 1].replace(error.wrong_value, error.correct_value)
+        _file = open(error.file_path, 'w')
+        _file.writelines(lines)
+        _file.close()

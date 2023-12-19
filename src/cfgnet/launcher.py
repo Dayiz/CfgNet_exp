@@ -90,85 +90,6 @@ def init(
 
     logging.info("Done in [%s s]", str(completion_time))
 
-def solve(
-    project_root: str
-    ):
-    project_name = os.path.basename(project_root)
-    logging.info("Validate configuration network for %s.", project_name)
-
-    start = time.time()
-
-    ref_network = Network.load_network(project_root=project_root)
-    logger.configure_repo_logger(ref_network.cfg.logfile_path())
-
-    # TODO Network should configure LinkerManager with list of enabled linkers
-
-    conflicts, new_network = ref_network.validate()
-
-    if len(conflicts) == 0:
-        logging.info("No conflicts detected.")
-        return
-
-    detected_conflicts = sum((conflict.count() for conflict in conflicts))
-
-    logging.error(
-        "Detected %s configuration conflicts", str(detected_conflicts)
-    )
-
-    # TODO Correction options (keep new or old)
-    # keep old
-
-    # keep new
-    path = None
-    lines = [""]
-    for conflict in conflicts:
-        for dependent_artifact, dependent_option in conflict.dependents:
-            lines.clear()
-            path = dependent_artifact.file_path
-            conflict_line = dependent_option.location
-            conflict_path = str(conflict.dependent_option.display_option_id).split("::")
-            valuestartold = str(conflict.old_value.name).find(":")
-            valuestartnew = str(conflict.value.name).find(":")
-            old_value = str(conflict.old_value.name)[valuestartold + 1:]
-            new_value = str(conflict.value.name)[valuestartnew + 1:]
-            _file = open(path, 'r')
-            lines = _file.readlines()
-            _file.close()
-            if conflict_path[-1] in lines[conflict_line - 1]:
-                lines[conflict_line - 1] = str(lines[conflict_line - 1]).replace(old_value,new_value)
-                file = open(path, 'w')
-                file.writelines(lines)
-                out = (
-                    "-----------------------------------------\n"
-                    + f"In file {dependent_artifact.file_path}:{dependent_option.location}\n"
-                    + f"Modify option {dependent_option.display_option_id}:\n"
-                    + f'Changed "{old_value}" to "{new_value}"\n'
-                )
-                print(out)
-                file.close()
-            elif conflict_path[-1] in lines[conflict_line]:
-                lines[conflict_line] = str(lines[conflict_line]).replace(old_value,new_value)
-                file = open(path, 'w')
-                file.writelines(lines)
-                out = (
-                    "-----------------------------------------\n"
-                    + f"In file {dependent_artifact.file_path}:{dependent_option.location}\n"
-                    + f"Modify option {dependent_option.display_option_id}:\n"
-                    + f'Changed "{old_value}" to "{new_value}"\n'
-                )
-                print(out)
-                file.close()
-
-    network = Network.init_network(ref_network.cfg)
-
-    network.save()
-
-    completion_time = round((time.time() - start), 2)
-
-    logging.info("Done in [%s s]", completion_time)
-
-
-    sys.exit(1)
 
 @main.command()
 @add_project_root_argument
@@ -186,6 +107,7 @@ def validate(project_root: str):
 
     conflicts, new_network = ref_network.validate()
 
+    new_network.set_conflicts(conflicts)
     new_network.save()
 
     if len(conflicts) == 0:
