@@ -1,0 +1,19 @@
+{
+    "concept": "travis",
+    "constraint_types":{
+        "versionnumber":{
+            "value_syntax":"^([\\w]+:)?((((\\^|<|>|<=|>=|v|=){0,1}[ ]{0,1}[\\d]+(.[\\d\\w-]+)+),{0,1})*|[*]|[\\d\\w]+)$"
+        },
+        "language":{
+            "value_syntax":"^(android|c|clojure|cpp|crystal|csharp|d|dart|elixir|elm|erlang|generic|go|groovy|hack|haskell|haxe|java|julia|matlab|nix|node_js|objective-c|perl|perl6|php|python|r|ruby|rust|scala|shell|smalltalk)$",
+            "value_type":"language"
+        }
+    },
+    "special_type":{
+        "pythonversion":{
+            "sufix":"python",
+            "value_syntax":"^(python)(:)([\\d]+[.\\d]+|[\\w\\d]+)$",
+            "value_type":"pythonversion"
+        }
+    }
+}

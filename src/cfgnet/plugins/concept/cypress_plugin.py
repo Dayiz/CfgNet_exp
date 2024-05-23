@@ -15,7 +15,7 @@
 from typing import List
 from cfgnet.plugins.file_type.json_plugin import JsonPlugin
 from cfgnet.config_types.config_types import ConfigType
-
+from cfgnet.errors.error import Error
 
 class CypressPlugin(JsonPlugin):
     def __init__(self):
@@ -35,7 +35,9 @@ class CypressPlugin(JsonPlugin):
         :param option_name: name of option
         :return: config type
         """
-        if option_name == "projectId":
+        if option_name == "domain":
+            return ConfigType.DOMAIN_NAME
+        if option_name == "projectId": #is 6 char string
             return ConfigType.ID
         if any(x in option_name for x in ["Url", "url", "Hosts"]):
             return ConfigType.URL
@@ -59,7 +61,7 @@ class CypressPlugin(JsonPlugin):
             return ConfigType.BOOLEAN
         if any(x in option_name for x in ["Folder", "File", "Files"]):
             return ConfigType.PATH
-        if option_name == "nodeVersion":
+        if option_name == "nodeVersion": #should be value set
             return ConfigType.VERSION_NUMBER
         if option_name in (
             "defaultCommandTimeout",
@@ -89,9 +91,25 @@ class CypressPlugin(JsonPlugin):
             return ConfigType.NAME
 
         if option_name in ("viewportHeight", "viewportWidth"):
-            return ConfigType.SIZE
+            return ConfigType.COUNT
 
         if option_name in ("specPattern", "excludeSpecPattern"):
             return ConfigType.PATTERN
 
         return ConfigType.UNKNOWN
+
+    @staticmethod
+    def correct_error(error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        all_lines = _file.readlines()
+        _file.close()
+        irr_lines = all_lines[:error.line_number - 1]
+        rel_lines = all_lines[error.line_number - 1:]
+        for counter in range(len(rel_lines)):
+            if str(error.wrong_value) in str(rel_lines[counter]):
+                rel_lines[counter] = rel_lines[counter].replace(error.wrong_value, error.correct_value)
+                break
+        new_lines = irr_lines + rel_lines
+        _file = open(error.file_path, 'w')
+        _file.writelines(new_lines)
+        _file.close()

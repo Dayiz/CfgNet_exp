@@ -23,10 +23,12 @@ class Link:
     node_a: ValueNode
     artifact_a: ArtifactNode
     option_stack_a: List[OptionNode]
+    node_a_id : str
 
     node_b: ValueNode
     artifact_b: ArtifactNode
     option_stack_b: List[OptionNode]
+    node_b_id : str
 
     def __init__(self, node_a: ValueNode, node_b: ValueNode):
         if node_b.id < node_a.id:
@@ -40,7 +42,7 @@ class Link:
 
         self.node_b = node_b
         (
-            self.artifact_b, 
+            self.artifact_b,
             self.option_stack_b,
         ) = self._determine_components(node_b)
 
@@ -77,20 +79,17 @@ class Link:
         :return: true if node is involved in a link, else false
         """
         return node in (self.node_a, self.node_b)
-
+    
     def __hash__(self):
-        if(self.node_a):
-            if(self.node_a.id):
-                node_a_id = self.node_a.id
+        if hasattr(self, 'node_a') and  hasattr(self, 'node_b'): 
+            if hasattr(self.node_a, 'id') and hasattr(self.node_b, 'id'):
+                obj_hash = hash("|".join([self.node_a.id, self.node_b.id]))
+                return obj_hash
+            obj_hash = hash(id(self))
+            return obj_hash
         else:
-            node_a_id = "None"
-        if(self.node_b):
-            if(self.node_b.id):
-                node_b_id = self.node_b.id
-        else:
-            node_b_id = "None"
-        obj_hash = hash("|".join([node_a_id, node_b_id]))
-        return obj_hash
+            obj_hash = hash(id(self))
+            return obj_hash
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()

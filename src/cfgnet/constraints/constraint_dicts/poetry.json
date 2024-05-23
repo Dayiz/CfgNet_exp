@@ -1,0 +1,30 @@
+{
+    "concept": "poetry",
+    "constraint_types":{
+        "versionnumber":{
+            "value_syntax":"^(([\\w:\\[\\]-]+){0,1}[ ]{0,1}(\\^|<|>|<=|>=|v|=|==|~){0,1}[ ]{0,1}([']?[\\d]+[.\\d]+[']?[;,]{0,1}[ ]{0,1})){1,2}|([\\w-]+:([\\w\\d]+|[*]))$"
+        }
+    },
+    "special_type":{
+        "pythonversion":{
+            "sufix":"python",
+            "value_syntax":"^(python)(:)([\\d]+[.\\d]+|[\\w\\d]+)$",
+            "constraint_type":"pythonversion"
+        },
+        "exclude":{
+            "sufix":"exclude",
+            "value_syntax":"^[\\w\\d]+$",
+            "constraint_type":"exclude"
+        },
+        "extras":{
+            "sufix":"extras",
+            "value_syntax":"^[\\w\\d:]+$",
+            "constraint_type":"extras"
+        },
+        "donotuse":{
+            "value_type":"^(([\\w:\\[\\]-]+)[ ]{0,1}(\\^|<|>|<=|>=|v|=|==|~)[ ]{0,1}([']?[\\d]+[.\\d]+[']?[;,]{0,1}[ ]{0,1})){1,2}|([\\w-]+:[\\w\\d]+)$",
+            "value_syntax":"^([\\w]+:)?((((\\^|<|>|<=|>=|v|=){0,1}[ ]{0,1}[\\d]+(.[\\d\\w-]+)+),{0,1})*|[*])$"
+        }
+        
+    }
+}

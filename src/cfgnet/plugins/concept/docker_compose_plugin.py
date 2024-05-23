@@ -18,7 +18,7 @@ from cfgnet.config_types.config_types import ConfigType
 
 from cfgnet.network.nodes import ArtifactNode, OptionNode, ValueNode
 from cfgnet.plugins.file_type.yaml_plugin import YAMLPlugin
-
+from cfgnet.errors.error import Error
 
 class DockerComposePlugin(YAMLPlugin):
     file_name = re.compile(r"docker-compose(.\w+)?.yml")
@@ -127,8 +127,8 @@ class DockerComposePlugin(YAMLPlugin):
             )
         ):
             return ConfigType.NAME
-        if option_name == "rate":
-            return ConfigType.SPEED
+        if option_name == "rate": #can also be int
+            return ConfigType.SIZE 
         if option_name.endswith(
             (
                 "cpu_rt_runtime",
@@ -142,6 +142,7 @@ class DockerComposePlugin(YAMLPlugin):
             return ConfigType.TIME
         if option_name.endswith(
             (
+                "max-file",
                 "cpu_count",
                 "cpu_shares",
                 "uid",
@@ -181,7 +182,7 @@ class DockerComposePlugin(YAMLPlugin):
             )
         ):
             return ConfigType.IP_ADDRESS
-        if option_name.endswith(("dns_search", "extra_hosts")):
+        if option_name.endswith(("dns_search", "extra_hosts", "URL")):
             return ConfigType.URL
         if option_name.endswith(("user", "username")):
             return ConfigType.USERNAME
@@ -191,5 +192,23 @@ class DockerComposePlugin(YAMLPlugin):
             return ConfigType.PLATFORM
         if option_name == "protocol":
             return ConfigType.PROTOCOL
+        if option_name == "volumes":
+            return ConfigType.PATH
 
         return ConfigType.UNKNOWN
+
+    @staticmethod
+    def correct_error(error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        all_lines = _file.readlines()
+        _file.close()
+        irr_lines = all_lines[:error.line_number - 1]
+        rel_lines = all_lines[error.line_number - 1:]
+        for counter in range(len(rel_lines)):
+            if str(error.wrong_value) in str(rel_lines[counter]):
+                rel_lines[counter] = rel_lines[counter].replace(error.wrong_value, error.correct_value)
+                break
+        new_lines = irr_lines + rel_lines
+        _file = open(error.file_path, 'w')
+        _file.writelines(new_lines)
+        _file.close()

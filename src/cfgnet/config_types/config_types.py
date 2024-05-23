@@ -16,16 +16,11 @@ from enum import Enum, auto
 
 
 class ConfigType(Enum):
-    # Numbers
-    TIME = auto()
-    PORT = auto()
-    VERSION_NUMBER = auto()
-    FRACTION = auto()
-    SPEED = auto()
-    PERMISSION = auto()
+
+    # Numbers    
+    PORT = auto()    
+    FRACTION = auto()    
     COUNT = auto()
-    SIZE = auto()
-    IP_ADDRESS = auto()
     NUMBER = auto()
     ID = auto()
 
@@ -39,21 +34,32 @@ class ConfigType(Enum):
     PROTOCOL = auto()
     IMAGE = auto()
     PATH = auto()
+    FOLDER = auto()
     COMMAND = auto()
     LICENSE = auto()
     ENVIRONMENT = auto()
-    PATTERN = auto()
-    PLATFORM = auto()
-    LANGUAGE = auto()
-    TYPE = auto()
-    MIME = auto()
+    PATTERN = auto()    
+    TYPE = auto()   
     HOST = auto()
     STATE = auto()
     CLASS = auto()
+    PERMISSION = auto()
+    MESSAGE = auto()
+    PEPNAME = auto()
 
-    # Booleans
+    # Mixed
+    TIME = auto()
+    VERSION_NUMBER = auto()
+    SPEED = auto()
+    SIZE = auto()
+    IP_ADDRESS = auto()
+
+    # Enum
+    PLATFORM = auto()
     BOOLEAN = auto()
     MODE = auto()
+    LANGUAGE = auto()
+    MIME = auto()
 
     # UNKNOWN
     UNKNOWN = auto()

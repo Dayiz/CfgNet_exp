@@ -14,7 +14,7 @@
 # this program.  If not, see <https://www.gnu.org/licenses/>.
 from cfgnet.plugins.file_type.json_plugin import JsonPlugin
 from cfgnet.config_types.config_types import ConfigType
-
+from cfgnet.errors.error import Error
 
 class TsconfigPlugin(JsonPlugin):
     def __init__(self):
@@ -80,3 +80,19 @@ class TsconfigPlugin(JsonPlugin):
             return ConfigType.NAME
 
         return ConfigType.UNKNOWN
+
+    @staticmethod
+    def correct_error(error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        all_lines = _file.readlines()
+        _file.close()
+        irr_lines = all_lines[:error.line_number - 1]
+        rel_lines = all_lines[error.line_number - 1:]
+        for counter in range(len(rel_lines)):
+            if str(error.wrong_value) in str(rel_lines[counter]):
+                rel_lines[counter] = rel_lines[counter].replace(error.wrong_value, error.correct_value)
+                break
+        new_lines = irr_lines + rel_lines
+        _file = open(error.file_path, 'w')
+        _file.writelines(new_lines)
+        _file.close()

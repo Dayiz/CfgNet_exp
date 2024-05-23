@@ -240,3 +240,51 @@ class MultiValueConflict(Conflict):
 
     def is_involved(self, node: Any) -> bool:
         return False
+
+class ConstraintViolationConflict():
+    
+    def __init__(
+        self,
+        artifact: ArtifactNode,
+        option: OptionNode,
+        new_value: ValueNode,
+        new_constraint: str,
+        conflict_from_difference: bool,
+        old_value = None,        
+        old_constraint = None
+    ):
+        self.artifact: ArtifactNode = artifact
+        self.option: OptionNode = option
+        self.new_value: ValueNode = new_value
+        self.old_value: ValueNode = old_value
+        self.new_constraint: str = str(new_constraint)
+        self.conflict_from_difference = conflict_from_difference
+        if old_constraint:
+            self.old_constraint: str = str(old_constraint)
+        """
+        if conflict_from_difference:
+            id_string: str = old_value + "->" + new_value + "#c"
+        else:
+            id_string: str = "->" + new_value.id + "#c"
+        self.id: str = hashlib.md5(id_string.encode("utf-8")).hexdigest()
+
+    def __hash__(self):
+        return int(self.id, base=16)
+        """
+    def __str__(self):
+        if self.conflict_from_difference:
+            return (
+            f"Constraint Violation: {self.option.display_option_id} "
+            f"in artifact {self.artifact.rel_file_path}\n"
+            + f"Value changed from {self.old_value.name} to {self.new_value.name}\n"
+            + f"Satisfied constraint changed from {self.old_constraint} to {self.new_constraint}\n"
+        )
+        else:
+            return (
+            f"Constraint Violation: {self.option.display_option_id} "
+            f"in artifact {self.artifact.rel_file_path}\n"
+            + f"Value {self.new_value.name} expected to be {self.option.config_type}\n"
+        )
+
+
+        

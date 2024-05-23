@@ -1,0 +1,19 @@
+{
+    "concept": "cypresss",
+    "constraint_types":{
+        "port":{
+            "value_type":"int",
+            "value_range":[0,65535]
+        },
+        "name":{
+            "value_syntax":".*"
+        }
+    },
+    "special_type":{
+        "viewport":{
+            "prefix":"viewport",
+            "value_type":"int",
+            "value_range":[0,8192]
+        }
+    }
+}

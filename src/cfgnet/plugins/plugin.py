@@ -19,7 +19,6 @@ import os
 
 from typing import Optional
 from cfgnet.network.nodes import ProjectNode, ArtifactNode
-from cfgnet.errors.error import Error
 
 
 class Plugin(abc.ABC):

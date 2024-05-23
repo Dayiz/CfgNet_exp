@@ -26,7 +26,7 @@ from cfgnet.network.nodes import (
 )
 from cfgnet.plugins.plugin import Plugin
 from cfgnet.config_types.config_types import ConfigType
-
+from cfgnet.errors.error import Error
 
 class SpringPlugin(Plugin):
     application_yaml_regex = re.compile(r"application(.(dev|prod)+)?.yml")
@@ -252,6 +252,7 @@ class SpringPlugin(Plugin):
                 ".aop.auto",
                 ".proxy-target-class",
                 ".enabled",
+                ".prefer-ip-address"
             )
         ):
             return ConfigType.BOOLEAN
@@ -317,9 +318,10 @@ class SpringPlugin(Plugin):
 
         if option_name.endswith(".image.pixelmode"):
             return ConfigType.MODE
-
+        if option_name.endswith((".default-domain", "defaultZone", ".uri", "-uri")):
+            return ConfigType.DOMAIN_NAME
         if option_name.endswith(
-            (".default-domain", ".host", ".uri", "url", "-uri")
+            (".host", "url",)
         ):
             return ConfigType.URL
 
@@ -349,3 +351,19 @@ class SpringPlugin(Plugin):
             return ConfigType.EMAIL
 
         return ConfigType.UNKNOWN
+
+    @staticmethod
+    def correct_error(error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        all_lines = _file.readlines()
+        _file.close()
+        irr_lines = all_lines[:error.line_number - 1]
+        rel_lines = all_lines[error.line_number - 1:]
+        for counter in range(len(rel_lines)):
+            if str(error.wrong_value) in str(rel_lines[counter]):
+                rel_lines[counter] = rel_lines[counter].replace(error.wrong_value, error.correct_value)
+                break
+        new_lines = irr_lines + rel_lines
+        _file = open(error.file_path, 'w')
+        _file.writelines(new_lines)
+        _file.close()

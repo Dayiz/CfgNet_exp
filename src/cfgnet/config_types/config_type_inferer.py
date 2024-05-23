@@ -126,6 +126,9 @@ class ConfigTypeInferer:
             re.search(ConfigTypeInferer.regex_filepath_option, option_name)
         ) or bool(re.fullmatch(ConfigTypeInferer.regex_filepath_value, value)):
             return ConfigType.PATH
+        
+        if bool(re.fullmatch(ConfigTypeInferer.regex_boolean, value)):
+            return ConfigType.BOOLEAN
 
         if bool(
             re.search(
@@ -190,8 +193,7 @@ class ConfigTypeInferer:
         if bool(re.fullmatch(ConfigTypeInferer.regex_number, value)):
             return ConfigType.NUMBER
 
-        if bool(re.fullmatch(ConfigTypeInferer.regex_boolean, value)):
-            return ConfigType.BOOLEAN
+        
 
         if bool(re.fullmatch(ConfigTypeInferer.regex_size_value, value)):
             return ConfigType.SIZE

@@ -1,0 +1,14 @@
+{
+    "concept": "nodejs",
+    "constraint_types":{
+        "version":{
+            "value_syntax":"((^([\\w.-]+@([\\w-]+[.])+[\\w-]{2,4})$)|(^$))"
+        }
+    },
+    "special_type":{
+        "dependencies":{
+            "sufix":"dependencies",
+            "value_syntax":"^[\\w:-]+(\\^|<|>|<=|>=|v|=|==|~)[\\d]+[.\\d]*$"
+        }
+    }
+}

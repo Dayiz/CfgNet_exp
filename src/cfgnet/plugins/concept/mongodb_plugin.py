@@ -14,7 +14,7 @@
 # this program.  If not, see <https://www.gnu.org/licenses/>.
 from cfgnet.plugins.file_type.yaml_plugin import YAMLPlugin
 from cfgnet.config_types.config_types import ConfigType
-
+from cfgnet.errors.error import Error
 
 class MongoDBPlugin(YAMLPlugin):
     def __init__(self):
@@ -59,7 +59,8 @@ class MongoDBPlugin(YAMLPlugin):
 
         if option_name.endswith(
             (
-                "thresholdss",
+                "thresholdms",
+                #should be Number?
                 "timeoutms",
                 "seconds",
             )
@@ -94,7 +95,7 @@ class MongoDBPlugin(YAMLPlugin):
         if option_name.endswith("password"):
             return ConfigType.PASSWORD
 
-        if option_name.endswith("versions"):
+        if option_name.endswith("versions"):#logVersions should be value set
             return ConfigType.VERSION_NUMBER
 
         if option_name.endswith("keyidentifier"):
@@ -107,3 +108,19 @@ class MongoDBPlugin(YAMLPlugin):
             return ConfigType.USERNAME
 
         return ConfigType.UNKNOWN
+
+    @staticmethod
+    def correct_error(error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        all_lines = _file.readlines()
+        _file.close()
+        irr_lines = all_lines[:error.line_number - 1]
+        rel_lines = all_lines[error.line_number - 1:]
+        for counter in range(len(rel_lines)):
+            if str(error.wrong_value) in str(rel_lines[counter]):
+                rel_lines[counter] = rel_lines[counter].replace(error.wrong_value, error.correct_value)
+                break
+        new_lines = irr_lines + rel_lines
+        _file = open(error.file_path, 'w')
+        _file.writelines(new_lines)
+        _file.close()

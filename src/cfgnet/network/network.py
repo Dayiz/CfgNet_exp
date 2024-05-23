@@ -20,7 +20,6 @@ import sys
 import logging
 import hashlib
 import pickle
-import dill
 
 from typing import List, Set, Any, Optional, Callable, Tuple, Dict
 from collections import defaultdict
@@ -40,6 +39,8 @@ from cfgnet.network.network_configuration import NetworkConfiguration
 from cfgnet.exporter.exporter import DotExporter, JSONExporter
 from cfgnet.errors.error import Error
 from cfgnet.conflicts.conflict import Conflict, ModifiedOptionConflict
+from cfgnet.constraints.constraint_manager import ConstraintManager
+
 
 class Network:
     """Datastructure for a configuration network."""
@@ -48,14 +49,16 @@ class Network:
         self, project_name: str, root: ProjectNode, cfg: NetworkConfiguration
     ) -> None:
         self.cfg = cfg
-
+        self.conflicts: Set = set()
+        self.constraint_conflicts: Set = set()
         self.project_name: str = project_name
         self.root: ProjectNode = root
         self.root.network = self
         self.project_root: str = root.root_dir
+        self.option_constraints: Set = set()
+        self.constraint_violations: List = list()
 
         self.links: Set = set()
-        self.conflicts: Set = set()
 
         self.nodes = defaultdict(list)
         self.nodes[self.root.id].append(self.root)
@@ -169,6 +172,7 @@ class Network:
         )
 
         return conflicts, new_network
+    
 
     def save(self) -> None:
         """Save configuration network of a project into a pickle file."""
@@ -181,7 +185,7 @@ class Network:
         )
 
         with open(network_file, "wb") as pickle_file:
-            pickle.dump(self, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self, pickle_file)
 
     def traverse(self, current: Node, callback: Callable) -> None:
         """
@@ -322,54 +326,10 @@ class Network:
                     )
 
         LinkerManager.apply_linkers(network)
-
+        # TODO fill option_constaints
+        cm = ConstraintManager()
+        constraint_types = cm.get_option_constraint_type(network)
+        if constraint_types:
+            network.option_constraints = constraint_types
         return network
-
-    def create_error_from_conflict(self, conflict: Conflict, keep_old: bool) -> Optional[List[Error]]:
-        if type(conflict) != ModifiedOptionConflict:
-            return None
-        if keep_old:
-            line_number = conflict.dependent_option.location
-            file_path = conflict.dependent_artifact.file_path
-            wrong_value = conflict.value.name[
-                conflict.value.name.find(":") + 1:]
-            correct_value = conflict.old_value.name[
-                conflict.old_value.name.find(":") + 1:]
-            return [Error(line_number, file_path, wrong_value, correct_value, conflict.id)]
-        else:
-            errorlist = []
-            for dependent_artifact, dependent_option in conflict.dependents:
-                line_number = dependent_option.location
-                file_path = dependent_artifact.file_path
-                wrong_value = str(conflict.old_value.name)[
-                    str(conflict.old_value.name).find(":") + 1:]
-                correct_value = str(conflict.value.name)[
-                    str(conflict.value.name).find(":") + 1:]
-                errorlist.append(Error(line_number, file_path, wrong_value, correct_value, conflict.id))
-            return errorlist
-            
-    def get_errors_from_conflicts(self, keep_old: bool = True) -> Optional[Set[Error]]:
-        """
-        Detect errors with respect to the reference network.
-        :return: Set of detected errors
-        """
-        errors: Set = set()
-
-        for conflict in self.conflicts:
-            created_errors = self.create_error_from_conflict(conflict, keep_old)
-            if created_errors != None:
-                for created_error in created_errors:
-                    errors.add(created_error)
-                
-        if len(errors) == 0:
-            return None
-        return errors
-
-    def set_conflicts(self, new_conflicts: set):
-        self.conflicts = new_conflicts
-
-    def discard_conflict(self, conflict_id: str):
-        temp_conflict_set = self.conflicts
-        for conflict in self.temp_conflict_set:
-            if(conflict.id == conflict_id):
-                self.conflicts.discard(conflict)
+    

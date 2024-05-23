@@ -127,6 +127,22 @@ class MavenPlugin(Plugin):
                 parent_node.children.remove(option)
 
     @staticmethod
+    def correct_error(error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        all_lines = _file.readlines()
+        _file.close()
+        irr_lines = all_lines[:error.line_number - 1]
+        rel_lines = all_lines[error.line_number - 1:]
+        for counter in range(len(rel_lines)):
+            if str(error.wrong_value) in str(rel_lines[counter]):
+                rel_lines[counter] = rel_lines[counter].replace(error.wrong_value, error.correct_value)
+                break
+        new_lines = irr_lines + rel_lines
+        _file = open(error.file_path, 'w')
+        _file.writelines(new_lines)
+        _file.close()
+
+    @staticmethod
     def _add_attribs(subtree_root: _Element, current_node: OptionNode):
         current_attribs = subtree_root.attrib
         for key in current_attribs:
@@ -314,9 +330,12 @@ class MavenPlugin(Plugin):
         :param name: option name
         :return: ConfigType
         """
+        if option_name.endswith("Version") or option_name.endswith("version"):
+            return ConfigType.VERSION_NUMBER
         if option_name in (
             "modelVersion",
             "version",
+            "javadocVersion",
             "source",
             "target",
             "maven",
@@ -332,8 +351,14 @@ class MavenPlugin(Plugin):
             "organization",
             "role",
             "system",
+            "goal_descriptor",
         ):
             return ConfigType.NAME
+        
+        if option_name in (
+            "description"
+        ):
+            return ConfigType.MESSAGE
 
         if option_name in ("packaging", "type"):
             return ConfigType.TYPE
@@ -349,6 +374,8 @@ class MavenPlugin(Plugin):
             "sendOnFailure",
             "sendOnSuccess",
             "sendOnWarning",
+            "skipErrorNoDescriptorsFound",
+            "testinprocess"
         ):
             return ConfigType.BOOLEAN
 
@@ -364,7 +391,7 @@ class MavenPlugin(Plugin):
         if option_name in ("url", "organizationUrl", "picUrl", "downloadUrl"):
             return ConfigType.URL
 
-        if option_name == "licence":
+        if option_name == "license":
             return ConfigType.LICENSE
 
         if option_name == "email":
@@ -381,14 +408,11 @@ class MavenPlugin(Plugin):
 
         if option_name in ("updatePolicy", "checksumPolicy", "status"):
             return ConfigType.MODE
+        if option_name == "inceptionYear":
+            return ConfigType.COUNT
+        
+        if option_name.endswith("Year"):
+            return ConfigType.COUNT
 
         return ConfigType.UNKNOWN
 
-    def correct_error(self, error: Error) -> None:
-        _file = open(error.file_path, 'r')
-        lines = _file.readlines()
-        _file.close()
-        lines[error.line_number - 1] = lines[error.line_number - 1].replace(error.wrong_value, error.correct_value)
-        _file = open(error.file_path, 'w')
-        _file.writelines(lines)
-        _file.close()

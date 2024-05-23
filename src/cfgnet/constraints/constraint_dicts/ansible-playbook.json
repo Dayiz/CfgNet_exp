@@ -1,0 +1,15 @@
+{
+    "concept": "ansible-playbook",
+    "constraint_types":{
+        "port":{
+            "value_type":"int",
+            "value_range":[0,65535]
+        }
+    },
+    "special_type":{
+        "highlight":{
+            "sufix":"highlight",
+            "value_syntax":"^([\\d]+|[\\w]+)$"
+        }
+    }
+}

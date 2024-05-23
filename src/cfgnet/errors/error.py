@@ -5,9 +5,9 @@ class Error():
         self,
         line_number : int,
         file_path : str,
-        wrong_value : str = None,
+        wrong_value : Optional[str] = None,
         correct_value : Optional[str] = None,
-        conflict_id : str = None
+        conflict_id : Optional[str] = None
     ):
         self.line_number = line_number
         self.file_path = file_path

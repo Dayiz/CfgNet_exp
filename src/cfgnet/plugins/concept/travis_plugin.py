@@ -18,7 +18,7 @@ from yaml.nodes import MappingNode, ScalarNode
 from cfgnet.network.nodes import OptionNode
 from cfgnet.plugins.file_type.yaml_plugin import YAMLPlugin
 from cfgnet.config_types.config_types import ConfigType
-
+from cfgnet.errors.error import Error
 
 class TravisPlugin(YAMLPlugin):
     def __init__(self):
@@ -77,15 +77,21 @@ class TravisPlugin(YAMLPlugin):
             "after_script",
         ):
             return ConfigType.COMMAND
+        
+        if option_name.endswith("language"):
+            return ConfigType.LANGUAGE
 
         if option_name in ("submodules", "quiet", "lfs_skip_smudge"):
             return ConfigType.BOOLEAN
 
-        if option_name == "hosts":
+        if option_name.endswith(("hosts", "URL", "url", "Url")):
             return ConfigType.URL
 
         if option_name in ("os", "arch"):
             return ConfigType.PLATFORM
+        
+        if option_name.endswith("version"):
+            return ConfigType.VERSION_NUMBER
 
         if option_name in ("name", "services", "hostname", "dist", "compiler"):
             return ConfigType.NAME
@@ -98,20 +104,37 @@ class TravisPlugin(YAMLPlugin):
             for x in ["file", "File", "FILE", "folder", "FOLDER"]
         ):
             return ConfigType.PATH
-
-        if option_name == "language":
-            return ConfigType.LANGUAGE
-
-        if option_name == "depth":
-            return ConfigType.NUMBER
-
         if option_name in (
             "version",
             "firefox",
             "mariadb",
             "postgresql",
             "rethinkdb",
+            "python",
+            "php"
         ):
             return ConfigType.VERSION_NUMBER
 
+        if option_name == "depth":
+            return ConfigType.NUMBER
+        if option_name.endswith(".username"):
+            return ConfigType.USERNAME
+        
+
         return ConfigType.UNKNOWN
+
+    @staticmethod
+    def correct_error(error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        all_lines = _file.readlines()
+        _file.close()
+        irr_lines = all_lines[:error.line_number - 1]
+        rel_lines = all_lines[error.line_number - 1:]
+        for counter in range(len(rel_lines)):
+            if str(error.wrong_value) in str(rel_lines[counter]):
+                rel_lines[counter] = rel_lines[counter].replace(error.wrong_value, error.correct_value)
+                break
+        new_lines = irr_lines + rel_lines
+        _file = open(error.file_path, 'w')
+        _file.writelines(new_lines)
+        _file.close()

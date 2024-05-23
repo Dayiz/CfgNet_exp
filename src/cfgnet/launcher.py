@@ -6,12 +6,16 @@ import json
 from typing import List
 import click
 
+from cfgnet.network.nodes import ArtifactNode
 from cfgnet.utility import logger
 from cfgnet.network.network import Network
 from cfgnet.network.network_configuration import NetworkConfiguration
 from cfgnet.launcher_configuration import LauncherConfiguration
 from cfgnet.analyze.analyzer import Analyzer
 from cfgnet.linker.linker_manager import LinkerManager
+from cfgnet.plugins.plugin_manager import PluginManager
+from cfgnet.errors.error_detector import ErrorDetector
+from cfgnet.constraints.constraint_manager import ConstraintManager
 
 
 add_project_root_argument = click.argument(
@@ -81,7 +85,6 @@ def init(
     logger.configure_repo_logger(network_configuration.logfile_path())
 
     start = time.time()
-
     network = Network.init_network(network_configuration)
 
     network.save()
@@ -89,7 +92,6 @@ def init(
     completion_time = round((time.time() - start), 2)
 
     logging.info("Done in [%s s]", str(completion_time))
-
 
 @main.command()
 @add_project_root_argument
@@ -106,11 +108,11 @@ def validate(project_root: str):
     # TODO Network should configure LinkerManager with list of enabled linkers
 
     conflicts, new_network = ref_network.validate()
-
-    new_network.set_conflicts(conflicts)
+    constraint_difference = new_network.option_constraints.difference(ref_network.option_constraints)
+    new_network.conflicts = conflicts
     new_network.save()
 
-    if len(conflicts) == 0:
+    if (len(conflicts) + len(constraint_difference))== 0:
         logging.info("No conflicts detected.")
         return
 
@@ -127,6 +129,172 @@ def validate(project_root: str):
     print()
     for conflict in conflicts:
         print(conflict)
+
+    sys.exit(1)
+      
+@main.command()
+@add_project_root_argument
+def checkconstraints(project_root: str):
+    """Validating constraints of a network."""
+    project_name = os.path.basename(project_root)
+    logging.info("Validate constraints configuration network for %s.", project_name)
+
+    start = time.time()
+
+    network = Network.load_network(project_root=project_root)
+    logger.configure_repo_logger(network.cfg.logfile_path())
+
+    cm = ConstraintManager()
+    node_list = network.get_nodes(ArtifactNode)
+    found_violations = []
+    for node in node_list:
+        result = cm.check_constraints(node)
+        if result != None:
+            found_violations += result
+    network.constraint_violations = found_violations
+    network.save()
+    if len(found_violations) > 0:
+        print()
+        print(f"Found Constraint Violations: {len(found_violations)}")
+        for violation in found_violations:
+            print("===========================================")
+            print(violation)
+
+    completion_time = round((time.time() - start), 2)
+    logging.info("Done in [%s s]", completion_time)
+    sys.exit(1)
+
+@main.command
+@add_project_root_argument
+def correctconstraints(project_root: str):
+    start = time.time()
+    network = Network.load_network(project_root=project_root)
+    for counter in range(len(network.constraint_violations)):
+        obj = network.constraint_violations[counter]
+        var = input(f"Please input new Value for {obj.option.display_option_id} in Artifact {obj.artifact.rel_file_path} (expected {obj.option.config_type}-type): ")
+        if var == None:
+            continue
+        network.constraint_violations[counter].old_value = var
+    
+    errors = ErrorDetector.get_errors_from_conflicts(network.constraint_violations)
+    if not errors:
+        logging.info("No errors to correct exist.")
+        return
+    error_count = len(errors)
+    corrected_errors = 0
+    plugins = PluginManager.get_plugins()
+    unresolved_erros = []
+    for err in errors:
+        if err.wrong_value != None and err.correct_value != None and err.correct_value != "":
+            plugin = PluginManager.get_responsible_plugin(plugins, err.file_path)
+            if plugin:
+                try:
+                    plugin.correct_error(err)
+                    corrected_errors += 1
+                    #ref_network.discard_conflict(error)
+                except UnicodeDecodeError as error:
+                    unresolved_erros.append(err)
+                    logging.warning(
+                        "%s: %s (%s) (no correct_error method?)",
+                        plugin.__class__.__name__,
+                        error.reason
+                        )
+    logging.info(
+            "Corrected %s configuration errors", str(corrected_errors)
+        )
+    if (error_count - corrected_errors) != 0:
+        logging.info(
+            "%s configuration errors remain unresolved", str(error_count - corrected_errors)
+            )
+    completion_time = round((time.time() - start), 2)
+    logging.info("Done in [%s s]", completion_time)
+    sys.exit(1)
+    
+@main.command()
+@add_project_root_argument
+def validateconstraints(project_root: str):
+    project_name = os.path.basename(project_root)
+    logging.info("Validate configuration network for %s.", project_name)
+
+    start = time.time()
+    cm = ConstraintManager()
+    ref_network = Network.load_network(project_root=project_root)
+    logger.configure_repo_logger(ref_network.cfg.logfile_path())
+    new_network = Network.init_network(ref_network.cfg)
+    detected_conflicts = ref_network.option_constraints.difference(new_network.option_constraints)
+    new_network.constraint_conflicts = cm.convert_templates_to_conflicts(ref_network.option_constraints, new_network.option_constraints)
+    new_network.save()
+
+    logging.info(
+        f"Detected {len(detected_conflicts)} configuration conflicts"
+    )
+    print()
+    for det in new_network.constraint_conflicts:
+        print(det)
+    completion_time = round((time.time() - start), 2)
+
+    logging.info("Done in [%s s]", completion_time)
+
+    sys.exit(1)
+
+
+@main.command()
+@click.option("-r", "--replace-old-values", is_flag=True)
+@add_project_root_argument
+def solve(
+    replace_old_values: bool,
+    project_root: str    
+    ):
+    """Try to correct found conflicts"""
+    project_name = os.path.basename(project_root)
+    logging.info("Validate configuration network for %s.", project_name)
+
+    start = time.time()
+
+    ref_network = Network.load_network(project_root=project_root)
+    logger.configure_repo_logger(ref_network.cfg.logfile_path())
+    cm = ConstraintManager()
+    # 1) Correct Dependency Errors
+    # 2) Correct Constraint Errors
+    conflicts = ref_network.conflicts.union(ref_network.constraint_conflicts)  
+    errors = ErrorDetector.get_errors_from_conflicts(conflicts, replace_old_values)
+    if not errors:
+        logging.info("No errors detected.")
+        return
+    else:
+        detected_errors = len(errors)
+        logging.info(
+            "Detected %s configuration errors", str(detected_errors)
+        )
+    
+    plugins = PluginManager.get_plugins()
+    unresolved_erros = []
+    for err in errors:
+        plugin = PluginManager.get_responsible_plugin(plugins, err.file_path)
+        if plugin:
+            try:
+                plugin.correct_error(err)
+            except UnicodeDecodeError as error:
+                unresolved_erros.append(err)
+                logging.warning(
+                    "%s: %s (%s) (no correct_error method?)",
+                    plugin.__class__.__name__,
+                    error.reason
+                    )
+                
+    
+    #TODO Check which conflicts have been resolved, update conflicts for network
+        
+    solved_network = Network.init_network(ref_network.cfg)
+    solved_network.conflicts = ref_network.conflicts
+    solved_network.save()
+
+    completion_time = round((time.time() - start), 2)
+    if len(unresolved_erros) != 0:
+        logging.info("Unresolved Errors: %s", str(len(unresolved_erros)))
+        for ue in unresolved_erros:
+            logging.info(ue.conflict_id)
+    logging.info("Done in [%s s]", completion_time)
 
     sys.exit(1)
 

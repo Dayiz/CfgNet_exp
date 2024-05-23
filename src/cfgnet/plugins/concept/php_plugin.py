@@ -15,7 +15,7 @@
 from typing import List
 from cfgnet.config_types.config_types import ConfigType
 from cfgnet.plugins.file_type.configparser_plugin import ConfigParserPlugin
-
+from cfgnet.errors.error import Error
 
 class PhpPlugin(ConfigParserPlugin):
     def __init__(self):
@@ -61,8 +61,8 @@ class PhpPlugin(ConfigParserPlugin):
             "user_agent",
             "timezone",
             "default_db",
-            "default_charset",
-            "default_socket",
+            "default_charset",#should be mode
+            "default_socket",#should be ip or domain
             "default_host",
             "SMTP",
         ):
@@ -152,3 +152,19 @@ class PhpPlugin(ConfigParserPlugin):
             return ConfigType.DOMAIN_NAME
 
         return ConfigType.UNKNOWN
+
+    @staticmethod
+    def correct_error(error: Error) -> None:
+        _file = open(error.file_path, 'r')
+        all_lines = _file.readlines()
+        _file.close()
+        irr_lines = all_lines[:error.line_number - 1]
+        rel_lines = all_lines[error.line_number - 1:]
+        for counter in range(len(rel_lines)):
+            if str(error.wrong_value) in str(rel_lines[counter]):
+                rel_lines[counter] = rel_lines[counter].replace(error.wrong_value, error.correct_value)
+                break
+        new_lines = irr_lines + rel_lines
+        _file = open(error.file_path, 'w')
+        _file.writelines(new_lines)
+        _file.close()
